@@ -1,0 +1,52 @@
+---
+title: MeasurementOrFact type statistics
+author: Pieter Provoost
+output: html_document
+editor_options: 
+  chunk_output_type: console
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "web") })    
+---
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+library(DBI)
+library(readr)
+library(dplyr)
+library(formattable)
+library(tidyr)
+
+p(format(Sys.time(), "%B %d, %Y %H:%M"))
+force_refresh <- TRUE
+```
+
+This is an overview of all measurement types in the (Extended)MeasurentOrFact records.
+
+```{css, echo=FALSE}
+p {
+  margin: 10px 0px;
+}
+h3 {
+  margin: 20px 0px;
+}
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+readRenviron("env.txt")
+query <- read_file("query.sql")
+con <- dbConnect(RPostgres::Postgres(), dbname = Sys.getenv("OBIS_DB"), host = Sys.getenv("OBIS_HOST"), port = Sys.getenv("OBIS_PORT"), user = Sys.getenv("OBIS_USER"), password = Sys.getenv("OBIS_PASSWORD"), bigint = "integer")
+res <- dbSendQuery(con, query)
+stats <- dbFetch(res)
+dbClearResult(res)
+dbDisconnect(con)
+
+formattable(
+  stats %>%
+    mutate(
+      measurementType = measurementtype,
+      measurementTypeID = replace_na(measurementtypeid, ""),
+      records = format(count, big.mark = ",")
+    ) %>%
+    select(-measurementtype, -measurementtypeid, -count)
+)
+```
+
